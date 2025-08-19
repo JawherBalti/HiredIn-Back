@@ -27,4 +27,9 @@ class Resume extends Model
     {
         return $this->belongsTo(JobOffer::class);
     }
+    
+    public function interview()
+    {
+        return $this->hasOne(Interview::class);
+    }
 }
