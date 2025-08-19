@@ -5,6 +5,7 @@
     use App\Http\Controllers\CompanyController;
     use App\Http\Controllers\JobOfferController;
     use App\Http\Controllers\ResumeController;
+    use App\Http\Controllers\InterviewController;
 
     // Route::middleware('auth:sanctum')->get('/user', function(Request $request) {
     //     return $request->user();
@@ -66,5 +67,11 @@
         $request->user()->unreadNotifications->markAsRead();
         return response()->json(['message' => 'All notifications marked as read']);
     });
+
+    Route::middleware('auth:sanctum')->post('/interviews/resumes/{resume}/schedule', [InterviewController::class, 'schedule']);
+    Route::middleware('auth:sanctum')->get('/interviews/resumes/{resume}', [InterviewController::class, 'getForResume']);
+    Route::middleware('auth:sanctum')->put('/interviews/{interview}', [InterviewController::class, 'update']);
+    
+    Route::middleware('auth:sanctum')->get('/users/{user}/interviews', [InterviewController::class, 'getByApplicant']);
 
     Broadcast::routes(['middleware' => ['auth:sanctum']]);

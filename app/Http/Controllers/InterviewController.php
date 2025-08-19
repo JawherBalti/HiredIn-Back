@@ -68,4 +68,22 @@ class InterviewController extends Controller
 
         return response()->json($interview);
     }
+
+    // app/Http/Controllers/InterviewController.php
+    public function getByApplicant(User $user)
+    {
+        // Verify the requesting user has permission to view these interviews
+        if (Auth::id() !== $user->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $interviews = Interview::with(['resume.jobOffer.company', 'scheduler'])
+            ->whereHas('resume', function($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+            ->orderBy('scheduled_time', 'desc')
+            ->get();
+
+        return response()->json($interviews);
+    }
 }
