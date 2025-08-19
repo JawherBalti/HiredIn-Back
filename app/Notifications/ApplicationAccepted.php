@@ -13,10 +13,12 @@ class ApplicationAccepted extends Notification
     use Queueable;
 
     protected $jobOffer;
+    protected $status;
 
-    public function __construct(JobOffer $jobOffer)
+    public function __construct(JobOffer $jobOffer, $status)
     {
         $this->jobOffer = $jobOffer;
+        $this->status = $status;
     }
 
     public function via($notifiable)
@@ -30,7 +32,7 @@ class ApplicationAccepted extends Notification
             'job_offer_id' => $this->jobOffer->id,
             'job_offer_title' => $this->jobOffer->title,
             'company_name' => $this->jobOffer->company->name,
-            'message' => 'Your job application has been accepted.',
+            'message' => 'Your job application has been ' . $this->status . '.',
         ];
     }
 
@@ -40,7 +42,7 @@ class ApplicationAccepted extends Notification
             'job_offer_id' => $this->jobOffer->id,
             'job_offer_title' => $this->jobOffer->title,
             'company_name' => $this->jobOffer->company->name,
-            'message' => 'Your job application has been accepted.',
+            'message' => 'Your job application has been ' . $this->status . '.',
         ]);
     }
 }

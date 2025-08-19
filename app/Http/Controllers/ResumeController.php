@@ -97,10 +97,9 @@ public function store(Request $request, JobOffer $jobOffer)
         $resume->update(['status' => $request->status]);
 
         // Send notification if status changed to accepted
-        if ($request->status === 'accepted' && $previousStatus !== 'accepted') {
+        if ($request->status != 'pending' && $previousStatus != $request->status) {
         try {
-            $resume->user->notify(new ApplicationAccepted($resume->jobOffer));
-            \Log::debug('Notification sent successfully');
+            $resume->user->notify(new ApplicationAccepted($resume->jobOffer, $request->status));
         } catch (\Exception $e) {
             \Log::error('Notification failed: '.$e->getMessage());
         }        
