@@ -9,7 +9,7 @@ class Company extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'website', 'industry', 'description'];
+    protected $fillable = ['user_id', 'name', 'website', 'industry', 'description'];
 
     public function jobOffers()
     {
