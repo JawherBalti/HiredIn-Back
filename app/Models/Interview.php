@@ -1,10 +1,29 @@
 <?php
+    namespace App\Models;
 
-namespace App\Models;
+    use Illuminate\Database\Eloquent\Factories\HasFactory;
+    use Illuminate\Database\Eloquent\Model;
 
-use Illuminate\Database\Eloquent\Model;
+    class Interview extends Model
+    {
+        use HasFactory;
 
-class Interview extends Model
-{
-    //
-}
+        protected $fillable = [
+            'resume_id',
+            'scheduled_by',
+            'scheduled_time',
+            'location',
+            'notes',
+            'status'
+        ];
+
+        public function resume()
+        {
+            return $this->belongsTo(Resume::class);
+        }
+
+        public function scheduler()
+        {
+            return $this->belongsTo(User::class, 'scheduled_by');
+        }
+    }
