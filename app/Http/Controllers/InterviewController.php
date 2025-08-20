@@ -2,6 +2,7 @@
 // app/Http/Controllers/InterviewController.php
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Models\Resume;
 use App\Models\Interview;
 use Illuminate\Http\Request;
@@ -72,17 +73,47 @@ class InterviewController extends Controller
     // app/Http/Controllers/InterviewController.php
     public function getByApplicant(User $user)
     {
-        // Verify the requesting user has permission to view these interviews
-        if (Auth::id() !== $user->id) {
+        if (Auth::id() !== $user->id && !Auth::user()->isAdmin()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $interviews = Interview::with(['resume.jobOffer.company', 'scheduler'])
+        $interviews = Interview::with([
+                'resume.jobOffer.company', 
+                'resume.jobOffer.user',  // Job poster info
+                'scheduler'              // Who scheduled the interview
+            ])
             ->whereHas('resume', function($query) use ($user) {
                 $query->where('user_id', $user->id);
             })
             ->orderBy('scheduled_time', 'desc')
-            ->get();
+            ->get()
+            ->map(function ($interview) {
+                return [
+                    'id' => $interview->id,
+                    'scheduled_time' => $interview->scheduled_time,
+                    'location' => $interview->location,
+                    'notes' => $interview->notes,
+                    'status' => $interview->status,
+                    'created_at' => $interview->created_at,
+                    'job_offer' => [
+                        'id' => $interview->resume->jobOffer->id,
+                        'title' => $interview->resume->jobOffer->title,
+                        'description' => $interview->resume->jobOffer->description,
+                        'salary' => $interview->resume->jobOffer->salary,
+                        'type' => $interview->resume->jobOffer->type,
+                        'company' => [
+                            'id' => $interview->resume->jobOffer->company->id,
+                            'name' => $interview->resume->jobOffer->company->name,
+                            'industry' => $interview->resume->jobOffer->company->industry
+                        ],
+                        'recruiter' => [
+                            'name' => $interview->resume->jobOffer->user->name,
+                            'email' => $interview->resume->jobOffer->user->email
+                        ]
+                    ],
+                    'scheduler' => $interview->scheduler
+                ];
+            });
 
         return response()->json($interviews);
     }
