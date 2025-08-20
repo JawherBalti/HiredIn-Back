@@ -73,7 +73,7 @@ class InterviewController extends Controller
     // app/Http/Controllers/InterviewController.php
     public function getByApplicant(User $user)
     {
-        if (Auth::id() !== $user->id && !Auth::user()->isAdmin()) {
+        if (Auth::id() !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
