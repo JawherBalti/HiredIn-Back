@@ -41,7 +41,7 @@ class InterviewController extends Controller
         ]);
 
         // Notify the applicant
-        $resume->user->notify(new InterviewScheduled($interview));
+        $resume->user->notify(new InterviewScheduled($interview, 'scheduled'));
 
         return response()->json($interview, 201);
     }
@@ -65,7 +65,25 @@ class InterviewController extends Controller
             'status' => 'sometimes|in:scheduled,completed,canceled'
         ]);
 
+        // Store original values before update to check if important fields changed
+        $originalTime = $interview->scheduled_time;
+        $originalLocation = $interview->location;
+
         $interview->update($request->all());
+
+        // Check if important fields were updated
+        $timeChanged = $request->has('scheduled_time') && $originalTime != $request->scheduled_time;
+        $locationChanged = $request->has('location') && $originalLocation != $request->location;
+
+        // Send notification if any important field was updated
+        if ($timeChanged || $locationChanged) {
+            $interview->resume->user->notify(new InterviewScheduled($interview, 'updated', [
+                'time_changed' => $timeChanged,
+                'location_changed' => $locationChanged,
+                'original_time' => $originalTime,
+                'original_location' => $originalLocation,
+            ]));
+        }
 
         return response()->json($interview);
     }
