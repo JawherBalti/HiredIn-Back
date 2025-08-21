@@ -10,7 +10,7 @@ class JobOfferController extends Controller
 {
     public function index()
     {
-        return response()->json(JobOffer::all());
+        return response()->json(JobOffer::with('company')->get());
     }
 
     public function getCurrentUserJobs()
