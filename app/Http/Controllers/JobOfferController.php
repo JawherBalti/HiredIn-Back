@@ -13,6 +13,16 @@ class JobOfferController extends Controller
         return response()->json(JobOffer::with('company')->get());
     }
 
+    public function getRecentJobs()
+    {
+        $recentJobOffers = JobOffer::with('company')
+            ->orderBy('created_at', 'desc')
+            ->take(7)
+            ->get();
+        
+        return response()->json($recentJobOffers);
+    }
+
     public function getCurrentUserJobs()
     {
         return response()->json(
