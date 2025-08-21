@@ -27,6 +27,7 @@ class CompanyController extends Controller
             'website' => 'nullable|url',
             'industry' => 'nullable|string|max:255',
             'description' => 'nullable|string',
+            'logo_url' => 'nullable|string|max:255',
         ]);
 
         $validated['user_id'] = Auth::id();
