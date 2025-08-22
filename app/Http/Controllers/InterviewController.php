@@ -89,13 +89,16 @@ class InterviewController extends Controller
     }
 
     // app/Http/Controllers/InterviewController.php
-    public function getByApplicant(User $user)
+    public function getByApplicant(User $user, Request $request)
     {
         if (Auth::id() !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $interviews = Interview::with([
+        $perPage = $request->get('per_page', 9);
+        $page = $request->get('page', 1);
+
+        $interviewsQuery = Interview::with([
                 'resume.jobOffer.company', 
                 'resume.jobOffer.user',  // Job poster info
                 'scheduler'              // Who scheduled the interview
@@ -103,36 +106,51 @@ class InterviewController extends Controller
             ->whereHas('resume', function($query) use ($user) {
                 $query->where('user_id', $user->id);
             })
-            ->orderBy('scheduled_time', 'desc')
-            ->get()
-            ->map(function ($interview) {
-                return [
-                    'id' => $interview->id,
-                    'scheduled_time' => $interview->scheduled_time,
-                    'location' => $interview->location,
-                    'notes' => $interview->notes,
-                    'status' => $interview->status,
-                    'created_at' => $interview->created_at,
-                    'job_offer' => [
-                        'id' => $interview->resume->jobOffer->id,
-                        'title' => $interview->resume->jobOffer->title,
-                        'description' => $interview->resume->jobOffer->description,
-                        'salary' => $interview->resume->jobOffer->salary,
-                        'type' => $interview->resume->jobOffer->type,
-                        'company' => [
-                            'id' => $interview->resume->jobOffer->company->id,
-                            'name' => $interview->resume->jobOffer->company->name,
-                            'industry' => $interview->resume->jobOffer->company->industry
-                        ],
-                        'recruiter' => [
-                            'name' => $interview->resume->jobOffer->user->name,
-                            'email' => $interview->resume->jobOffer->user->email
-                        ]
-                    ],
-                    'scheduler' => $interview->scheduler
-                ];
-            });
+            ->orderBy('scheduled_time', 'desc');
 
-        return response()->json($interviews);
+        // Get paginated results
+        $interviews = $interviewsQuery->paginate($perPage, ['*'], 'page', $page);
+
+        // Transform the data while maintaining your original structure
+        $transformedData = $interviews->getCollection()->map(function ($interview) {
+            return [
+                'id' => $interview->id,
+                'scheduled_time' => $interview->scheduled_time,
+                'location' => $interview->location,
+                'notes' => $interview->notes,
+                'status' => $interview->status,
+                'created_at' => $interview->created_at,
+                'job_offer' => [
+                    'id' => $interview->resume->jobOffer->id,
+                    'title' => $interview->resume->jobOffer->title,
+                    'description' => $interview->resume->jobOffer->description,
+                    'salary' => $interview->resume->jobOffer->salary,
+                    'type' => $interview->resume->jobOffer->type,
+                    'company' => [
+                        'id' => $interview->resume->jobOffer->company->id,
+                        'name' => $interview->resume->jobOffer->company->name,
+                        'industry' => $interview->resume->jobOffer->company->industry,
+                        'logo_url' => $interview->resume->jobOffer->company->logo_url
+                    ],
+                    'recruiter' => [
+                        'name' => $interview->resume->jobOffer->user->name,
+                        'email' => $interview->resume->jobOffer->user->email
+                    ]
+                ],
+                'scheduler' => $interview->scheduler
+            ];
+        });
+
+        return response()->json([
+            'data' => $transformedData,
+            'pagination' => [
+                'current_page' => $interviews->currentPage(),
+                'per_page' => $interviews->perPage(),
+                'total' => $interviews->total(),
+                'last_page' => $interviews->lastPage(),
+                'from' => $interviews->firstItem(),
+                'to' => $interviews->lastItem(),
+            ]
+        ]);
     }
 }
