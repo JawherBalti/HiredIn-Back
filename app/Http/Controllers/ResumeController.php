@@ -64,24 +64,40 @@
     }
 
     // app/Http/Controllers/ResumeController.php
-    public function getUserApplications()
-    {
-        $applications = Resume::where('user_id', auth()->id())
-            ->with(['jobOffer', 'jobOffer.company', 'interview']) // Add interview here
-            ->get()
-            ->map(function ($resume) {
-                return [
-                    'job_offer' => $resume->jobOffer,
-                    'status' => $resume->status,
-                    'applied_at' => $resume->created_at,
-                    'cover_letter' => $resume->cover_letter,
-                    'resume_id' => $resume->id,
-                    'interview' => $resume->interview // Include interview data
-                ];
-            });
-
-        return response()->json($applications);
-    }
+ public function getUserApplications(Request $request)
+{
+    $perPage = $request->get('per_page', 1);
+    $page = $request->get('page', 1);
+    
+    $applications = Resume::where('user_id', auth()->id())
+        ->with(['jobOffer', 'jobOffer.company', 'interview'])
+        ->orderBy('created_at', 'desc')
+        ->paginate($perPage, ['*'], 'page', $page);
+    
+    // Transform the paginated results while maintaining your original structure
+    $transformedData = $applications->getCollection()->map(function ($resume) {
+        return [
+            'job_offer' => $resume->jobOffer,
+            'status' => $resume->status,
+            'applied_at' => $resume->created_at,
+            'cover_letter' => $resume->cover_letter,
+            'resume_id' => $resume->id,
+            'interview' => $resume->interview
+        ];
+    });
+    
+    return response()->json([
+        'data' => $transformedData,
+        'pagination' => [
+            'current_page' => $applications->currentPage(),
+            'per_page' => $applications->perPage(),
+            'total' => $applications->total(),
+            'last_page' => $applications->lastPage(),
+            'from' => $applications->firstItem(),
+            'to' => $applications->lastItem(),
+        ]
+    ]);
+}
 
     // Download a resume
     public function download(Resume $resume)
