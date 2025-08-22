@@ -8,9 +8,26 @@ use Illuminate\Support\Facades\Auth;
 
 class JobOfferController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(JobOffer::with('company')->get());
+        $perPage = $request->get('per_page', 9); // Default to 9 items per page
+        $page = $request->get('page', 1); // Default to page 1
+    
+        $jobOffers = JobOffer::with('company')
+        ->orderBy('created_at', 'desc') // Add this line to order by creation date descending
+        ->paginate($perPage, ['*'], 'page', $page);
+        
+        return response()->json([
+            'data' => $jobOffers->items(),
+            'pagination' => [
+                'current_page' => $jobOffers->currentPage(),
+                'per_page' => $jobOffers->perPage(),
+                'total' => $jobOffers->total(),
+                'last_page' => $jobOffers->lastPage(),
+                'from' => $jobOffers->firstItem(),
+                'to' => $jobOffers->lastItem(),
+            ]
+        ]);
     }
 
     public function getRecentJobs()
