@@ -41,63 +41,80 @@
     }
 
     // app/Http/Controllers/ResumeController.php
-    public function index(JobOffer $jobOffer)
+    public function index(JobOffer $jobOffer, Request $request)
     {
-        $resumes = $jobOffer->resumes()
-            ->with(['user', 'jobOffer', 'interview'])
-            ->get()
-            ->map(function ($resume) {
-                return [
-                    'id' => $resume->id,
-                    'user_id' => $resume->user_id,
-                    'job_offer_id' => $resume->job_offer_id,
-                    'status' => $resume->status,
-                    'created_at' => $resume->created_at,
-                    'updated_at' => $resume->updated_at,
-                    'user' => $resume->user,
-                    'job_offer' => $resume->jobOffer,
-                    'interview' => $resume->interview // Explicitly include
-                ];
-            });
+        $perPage = $request->get('per_page', 9); // Default to 10 items per page
+        $page = $request->get('page', 1);
         
-        return response()->json($resumes);
+        $resumesQuery = $jobOffer->resumes()
+            ->with(['user', 'interview']);
+        
+        // Get paginated results
+        $resumes = $resumesQuery->paginate($perPage, ['*'], 'page', $page);
+        
+        // Transform the data while maintaining your structure
+        $transformedData = $resumes->getCollection()->map(function ($resume) {
+            return [
+                'id' => $resume->id,
+                'user_id' => $resume->user_id,
+                'job_offer_id' => $resume->job_offer_id,
+                'cover_letter' => $resume->cover_letter,
+                'status' => $resume->status,
+                'created_at' => $resume->created_at,
+                'updated_at' => $resume->updated_at,
+                'user' => $resume->user,
+                'interview' => $resume->interview
+            ];
+        });
+        
+        return response()->json([
+            'data' => $transformedData,
+            'pagination' => [
+                'current_page' => $resumes->currentPage(),
+                'per_page' => $resumes->perPage(),
+                'total' => $resumes->total(),
+                'last_page' => $resumes->lastPage(),
+                'from' => $resumes->firstItem(),
+                'to' => $resumes->lastItem(),
+            ]
+        ]);
     }
 
     // app/Http/Controllers/ResumeController.php
- public function getUserApplications(Request $request)
-{
-    $perPage = $request->get('per_page', 1);
-    $page = $request->get('page', 1);
-    
-    $applications = Resume::where('user_id', auth()->id())
-        ->with(['jobOffer', 'jobOffer.company', 'interview'])
-        ->orderBy('created_at', 'desc')
-        ->paginate($perPage, ['*'], 'page', $page);
-    
-    // Transform the paginated results while maintaining your original structure
-    $transformedData = $applications->getCollection()->map(function ($resume) {
-        return [
-            'job_offer' => $resume->jobOffer,
-            'status' => $resume->status,
-            'applied_at' => $resume->created_at,
-            'cover_letter' => $resume->cover_letter,
-            'resume_id' => $resume->id,
-            'interview' => $resume->interview
-        ];
-    });
-    
-    return response()->json([
-        'data' => $transformedData,
-        'pagination' => [
-            'current_page' => $applications->currentPage(),
-            'per_page' => $applications->perPage(),
-            'total' => $applications->total(),
-            'last_page' => $applications->lastPage(),
-            'from' => $applications->firstItem(),
-            'to' => $applications->lastItem(),
-        ]
-    ]);
-}
+    public function getUserApplications(Request $request)
+    {
+        $perPage = $request->get('per_page', 1);
+        $page = $request->get('page', 1);
+        
+        $applications = Resume::where('user_id', auth()->id())
+            ->with(['jobOffer', 'jobOffer.company', 'interview'])
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+        
+        // Transform the paginated results while maintaining your original structure
+        $transformedData = $applications->getCollection()->map(function ($resume) {
+            return [
+                'job_offer' => $resume->jobOffer,
+                'status' => $resume->status,
+                'applied_at' => $resume->created_at,
+                'cover_letter' => $resume->cover_letter,
+                'resume_id' => $resume->id,
+                'interview' => $resume->interview
+            ];
+        });
+        
+        return response()->json([
+            'data' => $transformedData,
+            'pagination' => [
+                'current_page' => $applications->currentPage(),
+                'per_page' => $applications->perPage(),
+                'total' => $applications->total(),
+                'last_page' => $applications->lastPage(),
+                'from' => $applications->firstItem(),
+                'to' => $applications->lastItem(),
+            ]
+        ]);
+    }
 
     // Download a resume
     public function download(Resume $resume)
