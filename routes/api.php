@@ -21,7 +21,8 @@
 
     Route::get('/job-offers', [JobOfferController::class, 'index']);
     Route::get('/job-offers/recent-job-offers', [JobOfferController::class, 'getRecentJobs']);
-    Route::get('/job-offers/{id}', [JobOfferController::class, 'getOneJobOffer']);
+    Route::middleware('auth:sanctum')->get('/job-offers/current-user-job-offers', [JobOfferController::class, 'getCurrentUserJobs']);
+    Route::middleware('auth:sanctum')->get('/job-offers/{id}', [JobOfferController::class, 'getOneJobOffer']);
     Route::middleware('auth:sanctum')->post('/job-offers/createJob', [JobOfferController::class, 'store']);
     Route::middleware('auth:sanctum')->post('/job-offers/update/{jobOffer}', [JobOfferController::class, 'update']);
 
