@@ -40,13 +40,27 @@ class JobOfferController extends Controller
         return response()->json($recentJobOffers);
     }
 
-    public function getCurrentUserJobs()
+    public function getCurrentUserJobs(Request $request)
     {
-        return response()->json(
-            JobOffer::with('company')
-                ->where('user_id', Auth::id())
-                ->get()
-        );
+        $perPage = $request->get('per_page', 10); // Default to 10 items per page
+        $page = $request->get('page', 1);
+        
+        $jobOffers = JobOffer::with('company')
+            ->where('user_id', Auth::id())
+            ->orderBy('created_at', 'desc') // Add ordering
+            ->paginate($perPage, ['*'], 'page', $page);
+        
+        return response()->json([
+            'data' => $jobOffers->items(),
+            'pagination' => [
+                'current_page' => $jobOffers->currentPage(),
+                'per_page' => $jobOffers->perPage(),
+                'total' => $jobOffers->total(),
+                'last_page' => $jobOffers->lastPage(),
+                'from' => $jobOffers->firstItem(),
+                'to' => $jobOffers->lastItem(),
+            ]
+        ]);
     }
 
     public function store(Request $request)
