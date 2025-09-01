@@ -30,9 +30,20 @@ class CompanyController extends Controller
             'logo_url' => 'nullable|string|max:255',
         ]);
 
-        $validated['user_id'] = Auth::id();
+        $userId = Auth::id();
+        
+        // Check if user already has 3 or more companies
+        $companyCount = Company::where('user_id', $userId)->count();
+        
+        if ($companyCount >= 3) {
+            return response()->json([
+                'message' => 'You have reached the maximum limit of 3 companies per user.'
+            ], 422);
+        }
 
+        $validated['user_id'] = $userId;
         $company = Company::create($validated);
+        
         return response()->json($company, 201);
     }
 
