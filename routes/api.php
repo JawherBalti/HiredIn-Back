@@ -17,6 +17,8 @@
 
     Route::middleware('auth:sanctum')->get('/companies', [CompanyController::class, 'index']);
     Route::middleware('auth:sanctum')->get('/companies/current-user-companies', [CompanyController::class, 'getCurrentUserCompanies']);
+    Route::middleware('auth:sanctum')->get('/company/{company}', [CompanyController::class, 'getCompanyById']);
+    Route::middleware('auth:sanctum')->post('/company/update/{company}', [CompanyController::class, 'update']);
     Route::middleware('auth:sanctum')->post('/companies/createCompany', [CompanyController::class, 'store']);
 
     Route::get('/job-offers', [JobOfferController::class, 'index']);
