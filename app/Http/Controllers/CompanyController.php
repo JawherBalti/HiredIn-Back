@@ -41,6 +41,20 @@ class CompanyController extends Controller
         return response()->json($company);
     }
 
+    public function getCompanyById($id)
+    {
+        // Find the job offer with company data
+        $company = Company::find($id);
+
+        // If not found, return 404
+        if (!$company) {
+            return response()->json(['message' => 'Company not found'], 404);
+        }
+
+        // Return the job offer data
+        return response()->json($company);
+    }
+
     public function update(Request $request, Company $company)
     {
         $validated = $request->validate([
@@ -48,6 +62,7 @@ class CompanyController extends Controller
             'website' => 'nullable|url',
             'industry' => 'nullable|string|max:255',
             'description' => 'nullable|string',
+            'logo_url' => 'nullable|string|max:255',
         ]);
 
         $company->update($validated);
