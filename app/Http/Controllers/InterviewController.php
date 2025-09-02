@@ -97,21 +97,79 @@ class InterviewController extends Controller
 
         $perPage = $request->get('per_page', 9);
         $page = $request->get('page', 1);
+        $search = $request->get('search', '');
+        $jobType = $request->get('job_type', '');
+        $industry = $request->get('industry', '');
+        $dateFilter = $request->get('date_filter', '');
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
 
-        $interviewsQuery = Interview::with([
+        $query = Interview::with([
                 'resume.jobOffer.company', 
-                'resume.jobOffer.user',  // Job poster info
-                'scheduler'              // Who scheduled the interview
+                'resume.jobOffer.user',
+                'scheduler'
             ])
             ->whereHas('resume', function($query) use ($user) {
                 $query->where('user_id', $user->id);
-            })
-            ->orderBy('scheduled_time', 'desc');
+            });
 
-        // Get paginated results
-        $interviews = $interviewsQuery->paginate($perPage, ['*'], 'page', $page);
+        // Search filter
+        if ($search) {
+            $query->whereHas('resume.jobOffer', function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhereHas('company', function ($q) use ($search) {
+                      $q->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
 
-        // Transform the data while maintaining your original structure
+        // Job type filter
+        if ($jobType) {
+            $query->whereHas('resume.jobOffer', function ($q) use ($jobType) {
+                $q->where('type', $jobType);
+            });
+        }
+
+        // Industry filter
+        if ($industry) {
+            $query->whereHas('resume.jobOffer.company', function ($q) use ($industry) {
+                $q->where('industry', $industry);
+            });
+        }
+
+        // Date filters - using interview scheduled_time
+        if ($dateFilter) {
+            switch ($dateFilter) {
+                case 'today':
+                    $query->whereDate('scheduled_time', today());
+                    break;
+                case 'week':
+                    $query->whereBetween('scheduled_time', [
+                        now()->startOfWeek(),
+                        now()->endOfWeek()
+                    ]);
+                    break;
+                case 'month':
+                    $query->whereBetween('scheduled_time', [
+                        now()->startOfMonth(),
+                        now()->endOfMonth()
+                    ]);
+                    break;
+                case 'custom':
+                    if ($startDate && $endDate) {
+                        $query->whereBetween('scheduled_time', [
+                            $startDate,
+                            $endDate
+                        ]);
+                    }
+                    break;
+            }
+        }
+
+        $query->orderBy('scheduled_time', 'desc');
+        $interviews = $query->paginate($perPage, ['*'], 'page', $page);
+
+        // Transform the data
         $transformedData = $interviews->getCollection()->map(function ($interview) {
             return [
                 'id' => $interview->id,
