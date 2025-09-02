@@ -8,14 +8,74 @@ use Illuminate\Support\Facades\Auth;
 
 class JobOfferController extends Controller
 {
+    // In JobOfferController
     public function index(Request $request)
     {
-        $perPage = $request->get('per_page', 9); // Default to 9 items per page
-        $page = $request->get('page', 1); // Default to page 1
-    
-        $jobOffers = JobOffer::with('company')
-        ->orderBy('created_at', 'desc') // Add this line to order by creation date descending
-        ->paginate($perPage, ['*'], 'page', $page);
+        $perPage = $request->get('per_page', 9);
+        $page = $request->get('page', 1);
+        $search = $request->get('search', '');
+        $jobType = $request->get('job_type', '');
+        $industry = $request->get('industry', '');
+        $dateFilter = $request->get('date_filter', '');
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
+
+        $query = JobOffer::with('company')
+            ->orderBy('created_at', 'desc');
+
+        // Search filter
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                ->orWhere('location', 'like', "%{$search}%")
+                ->orWhereHas('company', function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%");
+                });
+            });
+        }
+
+        // Job type filter
+        if ($jobType) {
+            $query->where('type', $jobType);
+        }
+
+        // Industry filter
+        if ($industry) {
+            $query->whereHas('company', function ($q) use ($industry) {
+                $q->where('industry', $industry);
+            });
+        }
+
+        // Date filters
+        if ($dateFilter) {
+            switch ($dateFilter) {
+                case 'today':
+                    $query->whereDate('created_at', today());
+                    break;
+                case 'week':
+                    $query->whereBetween('created_at', [
+                        now()->startOfWeek(),
+                        now()->endOfWeek()
+                    ]);
+                    break;
+                case 'month':
+                    $query->whereBetween('created_at', [
+                        now()->startOfMonth(),
+                        now()->endOfMonth()
+                    ]);
+                    break;
+                case 'custom':
+                    if ($startDate && $endDate) {
+                        $query->whereBetween('created_at', [
+                            $startDate,
+                            $endDate
+                        ]);
+                    }
+                    break;
+            }
+        }
+
+        $jobOffers = $query->paginate($perPage, ['*'], 'page', $page);
         
         return response()->json([
             'data' => $jobOffers->items(),
