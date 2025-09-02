@@ -83,15 +83,77 @@
     // app/Http/Controllers/ResumeController.php
     public function getUserApplications(Request $request)
     {
-        $perPage = $request->get('per_page', 1);
+        $perPage = $request->get('per_page', 9);
         $page = $request->get('page', 1);
-        
-        $applications = Resume::where('user_id', auth()->id())
+        $search = $request->get('search', '');
+        $jobType = $request->get('job_type', '');
+        $industry = $request->get('industry', '');
+        $dateFilter = $request->get('date_filter', '');
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
+
+        $query = Resume::where('user_id', auth()->id())
             ->with(['jobOffer', 'jobOffer.company', 'interview'])
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage, ['*'], 'page', $page);
-        
-        // Transform the paginated results while maintaining your original structure
+            ->orderBy('created_at', 'desc');
+
+        // Search filter
+        if ($search) {
+            $query->whereHas('jobOffer', function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('location', 'like', "%{$search}%")
+                  ->orWhereHas('company', function ($q) use ($search) {
+                      $q->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Job type filter
+        if ($jobType) {
+            $query->whereHas('jobOffer', function ($q) use ($jobType) {
+                $q->where('type', $jobType);
+            });
+        }
+
+        // Industry filter
+        if ($industry) {
+            $query->whereHas('jobOffer.company', function ($q) use ($industry) {
+                $q->where('industry', $industry);
+            });
+        }
+
+        // Date filters - using resume created_at (application date)
+        if ($dateFilter) {
+            switch ($dateFilter) {
+                case 'today':
+                    $query->whereDate('created_at', today());
+                    break;
+                case 'week':
+                    $query->whereBetween('created_at', [
+                        now()->startOfWeek(),
+                        now()->endOfWeek()
+                    ]);
+                    break;
+                case 'month':
+                    $query->whereBetween('created_at', [
+                        now()->startOfMonth(),
+                        now()->endOfMonth()
+                    ]);
+                    break;
+                case 'custom':
+                    if ($startDate && $endDate) {
+                        $query->whereBetween('created_at', [
+                            $startDate,
+                            $endDate
+                        ]);
+                    }
+                    break;
+            }
+        }
+
+        // Get paginated results
+        $applications = $query->paginate($perPage, ['*'], 'page', $page);
+
+        // Transform the paginated results
         $transformedData = $applications->getCollection()->map(function ($resume) {
             return [
                 'job_offer' => $resume->jobOffer,
@@ -102,7 +164,7 @@
                 'interview' => $resume->interview
             ];
         });
-        
+
         return response()->json([
             'data' => $transformedData,
             'pagination' => [
