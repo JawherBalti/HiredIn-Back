@@ -6,9 +6,66 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Laravel\Socialite\Facades\Socialite;
+use GuzzleHttp\Client;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
+
+    public function redirectToGoogle()
+    {
+        return Socialite::driver('google')->stateless()->redirect();
+    }
+
+    public function handleGoogleCallback()
+    {
+        try {
+            // Disable SSL verification for development
+            $socialite = Socialite::driver('google')->stateless();
+            
+            // Set custom Guzzle client with SSL verification disabled
+            $socialite->setHttpClient(new Client([
+                'verify' => false, // Disable SSL verification
+            ]));
+
+            $googleUser = $socialite->user();
+
+            // $googleUser = Socialite::driver('google')->stateless()->user();
+            
+            // Check if user already exists
+            $user = User::where('email', $googleUser->getEmail())->first();
+
+            if (!$user) {
+                // Create new user
+                $user = User::create([
+                    'name' => $googleUser->getName(),
+                    'email' => $googleUser->getEmail(),
+                    'password' => Hash::make(Str::random(24)), // Random password for Google users
+                    // 'google_id' => $googleUser->getId(),
+                    'email_verified_at' => now(), // Mark email as verified
+                ]);
+            } else {
+                // Update existing user with Google ID
+                // $user->update([
+                //     'google_id' => $googleUser->getId(),
+                // ]);
+            }
+
+            // Generate token
+            $token = $user->createToken('auth_token')->plainTextToken;
+            $user['avatar'] = $googleUser->getAvatar();
+            // Redirect to frontend with token as query parameter
+            return redirect(env('FRONTEND_URL', 'http://localhost:4200') . '/auth/callback?token=' . $token . '&user=' . urlencode(json_encode($user)));
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Google authentication failed',
+                'error' => $e->getMessage()
+            ], 401);
+        }
+    }
+
     public function register(Request $request)
     {
         $validated = $request->validate([
