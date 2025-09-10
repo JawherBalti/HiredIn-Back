@@ -1,11 +1,13 @@
 <?php
     namespace App\Notifications;
 
+    use App\Models\User;
     use App\Models\Interview;
     use Illuminate\Bus\Queueable;
     use Illuminate\Contracts\Queue\ShouldQueue;
     use Illuminate\Notifications\Messages\MailMessage;
     use Illuminate\Notifications\Notification;
+    use App\Events\Notificationsent;
 
     class InterviewScheduled extends Notification
     {
@@ -60,6 +62,12 @@
                     $message .= '. Location: ' . $originalLocation . ' → ' . $newLocation;
                 }
             }
+
+            $reciever = User::find($this->interview->resume->user_id);
+            $sender = User::find(auth()->id());
+
+            broadcast(new Notificationsent($reciever, $sender, $message));
+
 
             return [
                 'interview_id' => $this->interview->id,
