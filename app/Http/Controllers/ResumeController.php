@@ -2,17 +2,18 @@
     // app/Http/Controllers/ResumeController.php
     namespace App\Http\Controllers;
 
+    use App\Models\User;
     use App\Models\Resume;
     use App\Models\JobOffer;
     use Illuminate\Http\Request;
     use Illuminate\Support\Facades\Storage;
     use Illuminate\Support\Facades\Auth;
     use App\Notifications\ApplicationAccepted;
-
+    use App\Notifications\JobApplied;
 
     class ResumeController extends Controller
     {
-        // Apply to a job (upload resume)
+    // Apply to a job (upload resume)
     public function store(Request $request, JobOffer $jobOffer)
     {
         $request->validate([
@@ -27,6 +28,8 @@
 
         $file = $request->file('resume');
         $path = $file->store('resumes');
+
+        $jobOffer->user->notify(new JobApplied($jobOffer));    
 
         $resume = Resume::create([
             'user_id' => auth()->id(), // Moved inside the create() method
@@ -209,7 +212,7 @@
         // Send notification if status changed to accepted
         if ($request->status != 'pending' && $previousStatus != $request->status) {
         try {
-            $resume->user->notify(new ApplicationAccepted($resume->jobOffer, $request->status));
+            $resume->user->notify(new ApplicationAccepted($resume, $request->status));    
         } catch (\Exception $e) {
             \Log::error('Notification failed: '.$e->getMessage());
         }        
