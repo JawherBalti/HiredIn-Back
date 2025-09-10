@@ -44,7 +44,7 @@
     // Download resume
     Route::get('/job-offers/resumes/{resume}/download', [ResumeController::class, 'download']);
     
-    Route::patch('/job-offers/resumes/{resume}/status', [ResumeController::class, 'updateStatus']);
+    Route::middleware('auth:sanctum')->patch('/job-offers/resumes/{resume}/status', [ResumeController::class, 'updateStatus']);
     
     // New notification routes
     Route::middleware('auth:sanctum')->get('/notifications', function (Request $request) {
