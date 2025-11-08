@@ -20,7 +20,7 @@ class JobOfferController extends Controller
         $startDate = $request->get('start_date');
         $endDate = $request->get('end_date');
 
-        $query = JobOffer::with('company')
+        $query = JobOffer::with('user')
             ->orderBy('created_at', 'desc');
 
         // Search filter

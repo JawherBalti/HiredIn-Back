@@ -28,7 +28,8 @@
 
         $file = $request->file('resume');
         $path = $file->store('resumes');
-
+        $settings = json_decode($jobOffer->user->settings);
+        if( $settings == null || $settings->notifications->pushNotifications )
         $jobOffer->user->notify(new JobApplied($jobOffer));    
 
         $resume = Resume::create([
@@ -212,6 +213,8 @@
         // Send notification if status changed to accepted
         if ($request->status != 'pending' && $previousStatus != $request->status) {
         try {
+            $settings = json_decode($resume->user->settings);
+            if( $settings == null || $settings->notifications->applicationUpdates )
             $resume->user->notify(new ApplicationAccepted($resume, $request->status));    
         } catch (\Exception $e) {
             \Log::error('Notification failed: '.$e->getMessage());

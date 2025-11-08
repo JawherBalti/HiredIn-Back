@@ -41,6 +41,8 @@ class InterviewController extends Controller
         ]);
 
         // Notify the applicant
+        $settings = json_decode($resume->user->settings);
+        if( $settings == null || $settings->notifications->interviewReminders )
         $resume->user->notify(new InterviewScheduled($interview, 'scheduled'));
 
         return response()->json($interview, 201);
@@ -77,12 +79,14 @@ class InterviewController extends Controller
 
         // Send notification if any important field was updated
         if ($timeChanged || $locationChanged) {
-            $interview->resume->user->notify(new InterviewScheduled($interview, 'updated', [
-                'time_changed' => $timeChanged,
-                'location_changed' => $locationChanged,
-                'original_time' => $originalTime,
-                'original_location' => $originalLocation,
-            ]));
+            $settings = json_decode($interview->resume->user->settings);
+            if( $settings == null || $settings->notifications->interviewReminders )
+                $interview->resume->user->notify(new InterviewScheduled($interview, 'updated', [
+                    'time_changed' => $timeChanged,
+                    'location_changed' => $locationChanged,
+                    'original_time' => $originalTime,
+                    'original_location' => $originalLocation,
+                ]));
         }
 
         return response()->json($interview);

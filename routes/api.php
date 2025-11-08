@@ -6,6 +6,7 @@
     use App\Http\Controllers\JobOfferController;
     use App\Http\Controllers\ResumeController;
     use App\Http\Controllers\InterviewController;
+    use App\Http\Controllers\ProfileController;
 
     // Route::middleware('auth:sanctum')->get('/user', function(Request $request) {
     //     return $request->user();
@@ -81,5 +82,22 @@
     Route::middleware('auth:sanctum')->put('/interviews/{interview}', [InterviewController::class, 'update']);
     
     Route::middleware('auth:sanctum')->get('/users/{user}/interviews', [InterviewController::class, 'getByApplicant']);
+
+
+    // Profile management
+    Route::middleware('auth:sanctum')->get('/profile', [ProfileController::class, 'getProfile']);
+    Route::middleware('auth:sanctum')->put('/profile', [ProfileController::class, 'updateProfile']);
+    Route::middleware('auth:sanctum')->put('/profile/password', [ProfileController::class, 'changePassword']);
+    
+    // Avatar management
+    Route::middleware('auth:sanctum')->post('/profile/avatar', [ProfileController::class, 'uploadAvatar']);
+    Route::middleware('auth:sanctum')->delete('/profile/avatar', [ProfileController::class, 'removeAvatar']);
+    
+    // Settings
+    Route::middleware('auth:sanctum')->put('/profile/settings', [ProfileController::class, 'updateSettings']);
+    
+    // Data management
+    Route::middleware('auth:sanctum')->get('/profile/export', [ProfileController::class, 'exportData']);
+    Route::middleware('auth:sanctum')->delete('/profile', [ProfileController::class, 'deleteAccount']);
 
     Broadcast::routes(['middleware' => ['auth:sanctum']]);
